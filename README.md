@@ -14,6 +14,7 @@ This system allows users to add students, record grades, view grades, and calcul
 *Calculate Averages: Compute the average grade for individual students.
 
 **Requirements**
+
 *Python 3.x
 
 *json module (standard library, no additional installation required)
