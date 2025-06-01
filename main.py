@@ -1,58 +1,105 @@
-import json
+import sqlite3
 
-# Initialize the student data storage
-data_file = 'students.json'
+conn = sqlite3.connect('students.db')
+cursor = conn.cursor()
 
-def load_data():
-    try:
-        with open(data_file, 'r') as file:
-            return json.load(file)
-    except FileNotFoundError:
-        return {}
+cursor.execute('''
+                CREATE TABLE IF NOT EXISTS students 
+                (
+                    student_id TEXT PRIMARY KEY ,
+                    name TEXT
+                )'''
+              )
 
-def save_data(data):
-    with open(data_file, 'w') as file:
-        json.dump(data, file, indent=4)
+cursor.execute('''
+                CREATE TABLE IF NOT EXISTS grades 
+                (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    student_id TEXT,
+                    grade REAL,
+                    FOREIGN KEY(student_id) REFERENCES students(student_id)
+                )'''
+            )
 
-def add_student(students):
+
+def add_student():
+    conn = sqlite3.connect('students.db')
+    cursor = conn.cursor()
+
     student_id = input("Enter student ID: ")
     name = input("Enter student name: ")
-    students[student_id] = {'name': name, 'grades': []}
-    print(f"Student {name} added.")
-    save_data(students)
 
-def record_grade(students):
+    try:
+        cursor.execute("INSERT INTO students (student_id, name) VALUES (?, ?)", (student_id, name))
+        conn.commit()
+        print(f"Student {name} added.")
+    except sqlite3.IntegrityError:
+        print("Student ID already exists.")
+
+    conn.close()
+
+
+def record_grade():
+    conn = sqlite3.connect('students.db')
+    cursor = conn.cursor()
+
     student_id = input("Enter student ID: ")
-    if student_id in students:
+    cursor.execute("SELECT * FROM students WHERE student_id = ?", (student_id,))
+    
+    if cursor.fetchone():
         grade = float(input("Enter grade: "))
-        students[student_id]['grades'].append(grade)
+        cursor.execute("INSERT INTO grades (student_id, grade) VALUES (?, ?)", (student_id, grade))
+        conn.commit()
         print("Grade recorded.")
-        save_data(students)
     else:
         print("Student not found.")
 
-def view_grades(students):
+    conn.close()
+
+
+def view_grades():
+    conn = sqlite3.connect('students.db')
+    cursor = conn.cursor()
+
     student_id = input("Enter student ID: ")
-    if student_id in students:
-        grades = students[student_id]['grades']
-        print(f"Grades for {students[student_id]['name']}: {grades}")
+    cursor.execute("SELECT name FROM students WHERE student_id = ?", (student_id,))
+    result = cursor.fetchone()
+
+    if result:
+        name = result[0]
+        cursor.execute("SELECT grade FROM grades WHERE student_id = ?", (student_id,))
+        grades = [row[0] for row in cursor.fetchall()]
+        print(f"Grades for {name}: {grades}")
     else:
         print("Student not found.")
 
-def calculate_average(students):
+    conn.close()
+
+
+def calculate_average():
+    conn = sqlite3.connect('students.db')
+    cursor = conn.cursor()
+
     student_id = input("Enter student ID: ")
-    if student_id in students:
-        grades = students[student_id]['grades']
+    cursor.execute("SELECT name FROM students WHERE student_id = ?", (student_id,))
+    result = cursor.fetchone()
+
+    if result:
+        name = result[0]
+        cursor.execute("SELECT grade FROM grades WHERE student_id = ?", (student_id,))
+        grades = [row[0] for row in cursor.fetchall()]
+
         if grades:
-            average = sum(grades) / len(grades)
-            print(f"Average grade for {students[student_id]['name']}: {average:.2f}")
+            avg = sum(grades) / len(grades)
+            print(f"Average grade for {name}: {avg:.2f}")
         else:
             print("No grades recorded.")
     else:
         print("Student not found.")
 
+    conn.close()
+
 def main():
-    students = load_data()
 
     while True:
         print("\n1. Add Student")
@@ -64,13 +111,13 @@ def main():
         choice = input("Enter your choice: ")
 
         if choice == '1':
-            add_student(students)
+            add_student()
         elif choice == '2':
-            record_grade(students)
+            record_grade()
         elif choice == '3':
-            view_grades(students)
+            view_grades()
         elif choice == '4':
-            calculate_average(students)
+            calculate_average()
         elif choice == '5':
             break
         else:
