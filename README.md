@@ -17,4 +17,4 @@ This system allows users to add students, record grades, view grades, and calcul
 
 *Python 3.x
 
-*json module (standard library, no additional installation required)
+sqlite3
